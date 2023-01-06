@@ -49,7 +49,8 @@ resource "aws_instance" "aws-ubuntu-jen" {
   security_groups= [var.security_group]
     tags= {
     Name = var.tag_name
-  user_data = <<-EOF
+   }
+   user_data = <<-EOF
   #!/bin/bash
   echo "*** Installing Jenkins"
   wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
@@ -61,7 +62,6 @@ resource "aws_instance" "aws-ubuntu-jen" {
   curl -sO http://91.92.136.187:8080/jnlpJars/agent.jar
   java -jar agent.jar -jnlpUrl http://91.92.136.187:8080/manage/computer/agent%2Djar/jenkins-agent.jnlp -secret bcf51f78fb24d6e0606ea62a83ca1b840d722956648c8d259920f059a8ad914e -workDir "/home/ubuntu/jenkins"
   EOF
-  }
 }
 
 # Create Elastic IP address
