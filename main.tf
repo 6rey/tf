@@ -56,9 +56,10 @@ resource "aws_instance" "aws-ubuntu-jen" {
   wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
   sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
   sudo apt update -y
-  sudo apt install jenkins openjdk-11-jdk -y
-  sudo systemctl start jenkins
-  echo "*** Completed Installing jenkins"
+  sudo apt install docker.io openjdk-11-jdk -y
+  sudo snap install docker
+  sudo systemctl start docker
+  echo "*** Completed Installing java and docker"
   curl -sO http://91.92.136.187:8080/jnlpJars/agent.jar
   java -jar agent.jar -jnlpUrl http://91.92.136.187:8080/manage/computer/agent%2Djar/jenkins-agent.jnlp -secret bcf51f78fb24d6e0606ea62a83ca1b840d722956648c8d259920f059a8ad914e -workDir "/home/ubuntu/jenkins"
   EOF
