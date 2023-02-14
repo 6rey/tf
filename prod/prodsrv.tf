@@ -1,18 +1,56 @@
 provider "aws" {
-   profile = "default"
-   region = "eu-central-1"
-   shared_credentials_file = "E:/terraform/tf2/.aws/credentials"
+  region = var.aws_region
 }
 
-#### Create EC2 instance with istall jenkins
+#Create security group with firewall rules
+resource "aws_security_group" "my_security_group" {
+  name        = var.security_group
+  description = "security group for Ec2 instance"
 
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+ ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+ # outbound from jenkis server
+  egress {
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags= {
+    Name = var.security_group
+  }
+}
+
+# Create AWS ec2 instance
 resource "aws_instance" "aws-ubuntu-prod" {
-   ami = "ami-03fbd36aaa3d9d134"
-   instance_type = "t3.micro"
-   key_name = "prodsrv"
-   vpc_security_group_ids = [aws_security_group.test_aws_sec2.id]
-
-  user_data = <<-EOF
+  ami           = var.ami_id
+  key_name = var.key_name
+  instance_type = var.instance_type
+  security_groups= [var.security_group]
+    tags= {
+    Name = var.tag_name
+   }
+   user_data = <<-EOF
   #!/bin/bash
   echo "*** Installing Jenkins"
   wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
@@ -25,68 +63,18 @@ resource "aws_instance" "aws-ubuntu-prod" {
   curl -sO http://91.92.136.187:8080/jnlpJars/agent.jar
   java -jar agent.jar -jnlpUrl http://91.92.136.187:8080/manage/computer/prod%2Dsrv/jenkins-agent.jnlp -secret 22381d99ff0392d0f066b1a8c10e092b16b0683425b24ef436d4079603702414 -workDir "/home/jenkins"
   EOF
-
 }
 
-######Create an Elastic IP
-resource "aws_eip" "demo-eip" {
-  vpc = true
+# Create Elastic IP address
+resource "aws_eip" "aws-ubuntu-prod" {
+  vpc      = true
+  instance = aws_instance.aws-ubuntu-prod.id
+tags= {
+    Name = "elastic_ip_ubu-prod"
+  }
 }
-
-#Associate EIP with EC2 Instance
-resource "aws_eip_association" "demo-eip-association" {
-  instance_id   = aws_instance.aws-ubuntu-prod.id
-  allocation_id = aws_eip.demo-eip.id
-}
-
 output "elastic_ip" {
-  value = aws_eip.demo-eip.public_ip
-}
-### Create sec group
-
-resource "aws_security_group" "test_aws_sec2" {
-  name        = "prod  server1"
-  description = "prod server for application"
-
-
-  ingress {
-    description      = "open port 8080"
-    from_port        = 8080
-    to_port          = 8080
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-
-  }
-
-  ingress {
-    description      = "open port 22"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-
-  }
-
-  ingress {
-    description      = "open ports 80"
-    from_port        = 80
-    to_port          = 80
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-
-  }
-
-  tags = {
-    Name = "allow_8080"
-  }
+  value = aws_eip.aws-ubuntu-prod.public_ip
 }
 
 resource "aws_key_pair" "deployer" {
